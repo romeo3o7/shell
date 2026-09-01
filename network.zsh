@@ -4,3 +4,7 @@ gateway(){
 wanip() (
 	curl ifconfig.me/all
 )
+
+ipinfo() {
+	curl ipinfo.io/"$1"
+}

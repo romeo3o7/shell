@@ -31,7 +31,7 @@ updatePrograms() {
  					       break
  						fi
 
-						if ( curl -fL -o "~/Downloads/$name" "$url" ) ; then
+						if  curl -fL -o "$dir/update/$name" "$url"  ; then
 							sed -i "s|Version:.*|Version:$checkVersion|" "$dir"/update/meta
 						else
 							echo "Downloading falied"
