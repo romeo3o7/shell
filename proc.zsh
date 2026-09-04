@@ -7,13 +7,11 @@ proc() {
 	[[ -z $pid ]] && { printf "Process not found\n"; return }
 	case $1 in
 		p)
-			local ppid=$(cat /proc/"$pid"/status | grep PPid | awk '{print $2}' )
-			if ( cat "/proc/"$ppid"/status" >/dev/null 2>&1 ); then
-				local name=$(cat /proc/"$ppid"/status | head -1  | awk '{print $2}' )
-				printf "parent:"$name"\nparentId:"$ppid"\n"
-			else
-				echo "(its ADAM himself)" >&2
-			fi
+			local ppid=$(awk '/^PPid:/ {print $2}' "/proc/"$pid"/status" 2>/dev/null )
+			(( ppid == 0 )) && {echo "(its ADAM himself)" >&2; return 0 }
+			local name=$(awk '/^Name:/ {print $2}' "/proc/"$ppid"/status" 2>/dev/null)
+			printf "parent:"$name"\nparentId:"$ppid"\n"
+
 		;;
 
 		mf)
