@@ -31,3 +31,55 @@ proc() {
 	fi
 	return 0
 }
+
+tmu() {
+    [[ -z "$1" ]] && {
+        echo "provide process id" >&2
+        return 1
+    }
+
+    local returnAllChildren() {
+        local child
+#		$# = args
+        (( $# == 0 )) && return
+
+        if (( $# == 1 )); then
+            child=$(pgrep -P "$1")
+        else
+	        local loopArgs() {
+	            for i in "$@"; do
+	                pgrep -P "$i"
+	            done
+	        }
+
+	        child=$(loopArgs "$@")
+
+        fi
+
+        echo "$child"
+        returnAllChildren ${=child}
+    }
+
+    local pids="$1 $(returnAllChildren "$1")"
+
+    [[ -z "$pids" ]] && {
+        echo "process children lookup error" >&2
+        return 1
+    }
+
+    local totalmem=0
+    local pid psize
+
+    for pid in ${=pids}; do
+        psize=$(awk '/^Pss:/ {print $2}' "/proc/$pid/smaps_rollup" 2>/dev/null)
+
+        [[ -z "$psize" ]] && {
+            echo "can't read file memory (lack of permission): $pid" >&2
+            continue
+        }
+
+        (( totalmem += psize ))
+    done
+
+    printf "%d MB\n" "$(( totalmem / 1024 ))"
+}

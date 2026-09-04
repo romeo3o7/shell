@@ -1,6 +1,6 @@
 updatePrograms() {
 	for dir in ~/Programs/*; do
-		if [ -d "$dir"/update ]; then
+		if [[ -d "$dir"/update ]]; then
 			local metadata=$(cat "$dir"/update/meta)
 			local owner=$(  echo "$metadata" | grep "Owner"   | sed 's|Owner:||'  )
 			local project=$(echo "$metadata" | grep "Project" | sed 's|Project:||')
@@ -8,15 +8,12 @@ updatePrograms() {
 			[[ -z "$output" ]] && { echo "no response for $project"; continue; }
 			local checkVersion=$(jq -r '.tag_name' <<< "$output")
 			echo "updatable Project : $project"
-			if [ "$checkVersion" = "null" ] || [ -z "$checkVersion" ]; then
-   				 echo "couldn't fetch version for $project"
-   				 continue
-			fi
+
+			[[ "$checkVersion" = "null" ]] || [[ -z "$checkVersion" ]] && { echo "couldn't fetch version for $project"; continue }
+
 			local currentVersion=$(echo "$metadata" | grep "Version" | sed 's|Version:||')
-			if [ "$checkVersion" = "$currentVersion" ]; then
-				echo "$project is up to date : $checkVersion"
-				continue
-			fi
+			[[ "$checkVersion" = "$currentVersion" ]] && { echo "$project is up to date : $checkVersion"; continue }
+
 			while true; do
 				read "response?$project is on $currentVersion, latest is $checkVersion; do you want to request the latest Version? [y/n]: "
 				case "$response" in
@@ -26,8 +23,9 @@ updatePrograms() {
 
 					   	local url=$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .browser_download_url' <<< "$output")
 
- 						if [ -z "$url" ] || [ "$url" = "null" ]; then
+ 						if [[ -z "$url" ]] || [[ "$url" = "null" ]]; then
 						   echo "couldn't find asset matching $name"
+						   echo "you may need to change asset name version to $checkVersion"
  					       break
  						fi
 
