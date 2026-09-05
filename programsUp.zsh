@@ -9,17 +9,23 @@ updatePrograms() {
 			local checkVersion=$(jq -r '.tag_name' <<< "$output")
 			echo "updatable Project : $project"
 
-			[[ "$checkVersion" = "null" ]] || [[ -z "$checkVersion" ]] && { echo "couldn't fetch version for $project"; continue }
+			[[ "$checkVersion" = "null" ]] || [[ -z "$checkVersion" ]] && { echo "couldn't fetch version for $project"; continue; }
 
 			local currentVersion=$(echo "$metadata" | grep "Version" | sed 's|Version:||')
-			[[ "$checkVersion" = "$currentVersion" ]] && { echo "$project is up to date : $checkVersion"; continue }
+			[[ "$checkVersion" = "$currentVersion" ]] && { echo "$project is up to date : $checkVersion"; continue; }
 
 			while true; do
 				read "response?$project is on $currentVersion, latest is $checkVersion; do you want to request the latest Version? [y/n]: "
 				case "$response" in
 					[Yy])
 						echo "Updating.."
- 						local name=$(echo "$metadata" | grep "AssetName" | sed 's|AssetName:||')
+						local name
+						if [[ $project = "brave-browser" ]]; then
+ 							name=$(echo "$metadata" | grep "AssetName" | sed 's|AssetName:||')
+						   	name=${name:0:13}${checkVersion/v}${name:13} 
+					   	else
+ 							name=$(echo "$metadata" | grep "AssetName" | sed 's|AssetName:||')
+						fi
 
 					   	local url=$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .browser_download_url' <<< "$output")
 
@@ -31,6 +37,11 @@ updatePrograms() {
 
 						if  curl -fL -o "$dir/update/$name" "$url"  ; then
 							sed -i "s|Version:.*|Version:$checkVersion|" "$dir"/update/meta
+							[[ $project = "brave-browser" ]] && { 
+								find "$dir" -mindepth 1 -maxdepth 1 ! -name update -exec rm -rf {} +
+								unzip "$dir/update/$name" -d "$dir" >/dev/null
+								rm "$dir/update/$name"
+							}
 						else
 							echo "Downloading falied"
 							break

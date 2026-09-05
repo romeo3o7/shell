@@ -11,57 +11,48 @@ proc() {
 			(( ppid == 0 )) && {echo "(its ADAM himself)" >&2; return 0 }
 			local name=$(awk '/^Name:/ {print $2}' "/proc/"$ppid"/status" 2>/dev/null)
 			printf "parent:"$name"\nparentId:"$ppid"\n"
-
 		;;
 
 		mf)
-			local returnAllChildren() {
-    	   		 local child
-#		   		 $# = args
-    	   		 (( $# == 0 )) && return
+    		local pids="$pid $(returnAllChildren "$pid")"
 
-    	   		 if (( $# == 1 )); then
-    	   		     child=$(pgrep -P "$1")
-    	   		 else
-		   		     local loopArgs() {
-		   		         for i in "$@"; do
-		   		             pgrep -P "$i"
-		   		         done
-		   		     }
+    		[[ -z "$pids" ]] && {
+    		    echo "process children lookup error" >&2
+    		    return 1
+    		}
 
-		   		     child=$(loopArgs "$@")
+    		local totalmem=0
+    		local cpid psize
 
-    	   		 fi
+    		for cpid in ${=pids}; do
+    		    psize=$(awk '/^Pss:/ {print $2}' "/proc/$cpid/smaps_rollup" 2>/dev/null)
 
-    	   		 echo "$child"
-    	   		 returnAllChildren ${=child}
-    	}
+    		    [[ -z "$psize" ]] && {
+    		        echo "can't read file memory (lack of permission): $cpid" >&2
+    		        continue
+    		    }
 
-    	local pids="$pid $(returnAllChildren "$pid")"
+    		    (( totalmem += psize ))
+    		done
 
-    	[[ -z "$pids" ]] && {
-    	    echo "process children lookup error" >&2
-    	    return 1
-    	}
-
-    	local totalmem=0
-    	local cpid psize
-
-    	for cpid in ${=pids}; do
-    	    psize=$(awk '/^Pss:/ {print $2}' "/proc/$cpid/smaps_rollup" 2>/dev/null)
-
-    	    [[ -z "$psize" ]] && {
-    	        echo "can't read file memory (lack of permission): $cpid" >&2
-    	        continue
-    	    }
-
-    	    (( totalmem += psize ))
-    	done
-
-    	printf "%d MB\n" "$(( totalmem / 1024 ))"
+    		printf "%d MB\n" "$(( totalmem / 1024 ))"
 		;;
 
 		*) printf "Flag not known";;
 	esac
 	return 0
+}
+returnAllChildren() {
+    local child
+    # $# = args
+    (( $# == 0 )) && return
+
+    if (( $# == 1 )); then
+        child=$(pgrep -P "$1")
+    else
+        child=$(for i in "$@"; do; pgrep -P "$i"; done )
+    fi
+
+    echo "$child"
+    returnAllChildren ${=child}
 }
