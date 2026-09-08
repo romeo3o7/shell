@@ -3,6 +3,7 @@ updatePrograms() {
 		if [[ -d "$dir"/update ]]; then
 			local metadata=$(cat "$dir"/update/meta)
 			local owner=$(  echo "$metadata" | grep "Owner"   | sed 's|Owner:||'  )
+			[[ $owner = "brave" ]] && { echo "use updateBrave"; continue; }
 			local project=$(echo "$metadata" | grep "Project" | sed 's|Project:||')
 			local output=$(curl -fsS "https://api.github.com/repos/$owner/$project/releases/latest")
 			[[ -z "$output" ]] && { echo "no response for $project"; continue; }
@@ -20,12 +21,7 @@ updatePrograms() {
 					[Yy])
 						echo "Updating.."
 						local name
-						if [[ $project = "brave-browser" ]]; then
- 							name=$(echo "$metadata" | grep "AssetName" | sed 's|AssetName:||')
-						   	name=${name:0:13}${checkVersion/v}${name:13} 
-					   	else
- 							name=$(echo "$metadata" | grep "AssetName" | sed 's|AssetName:||')
-						fi
+ 						name=$(echo "$metadata" | grep "AssetName" | sed 's|AssetName:||')
 
 					   	local url=$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .browser_download_url' <<< "$output")
 
@@ -37,11 +33,6 @@ updatePrograms() {
 
 						if  curl -fL -o "$dir/update/$name" "$url"  ; then
 							sed -i "s|Version:.*|Version:$checkVersion|" "$dir"/update/meta
-							[[ $project = "brave-browser" ]] && { 
-								find "$dir" -mindepth 1 -maxdepth 1 ! -name update -exec rm -rf {} +
-								unzip "$dir/update/$name" -d "$dir" >/dev/null
-								rm "$dir/update/$name"
-							}
 						else
 							echo "Downloading falied"
 							break

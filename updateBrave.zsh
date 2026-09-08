@@ -1,6 +1,6 @@
 updateBrave() {
 	local dir="$HOME"/Programs/brave
-	# meta file should have 
+	# meta file should have
 	# Version:v1x.xxx.xx
 	if [[ -d "$dir"/update ]] && [[ -f  "$dir"/update/meta ]]; then
 		local owner=brave
@@ -15,7 +15,7 @@ updateBrave() {
 		[[ "$checkVersion" = "$currentVersion" ]] && { echo "$project is up to date : $checkVersion"; return 0;}
 
 		while true; do
-			read -p "$project is on $currentVersion, latest is $checkVersion; do you want to request the latest Version? [y/n]: " response
+			read "response?$project is on $currentVersion, latest is $checkVersion; do you want to request the latest Version? [y/n]: "
 			case "$response" in
 				[Yy])
 					echo "Updating.."
@@ -38,10 +38,12 @@ updateBrave() {
 						break
 					fi
 
-					break;;
+					break
+					;;
 				[Nn])
 					echo "not Updating"
-					break;;
+					break
+					;;
 		   		*)
 					echo "choose y or n";;
 			esac

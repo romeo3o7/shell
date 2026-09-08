@@ -3,18 +3,18 @@ proc() {
 		printf "usgae: proc <flag> <process Name>\nFlags:\np:Parent\nmf:Memory footprint\n"
         return 1
     }
-	local pid=$(pgrep -o $2)
-	[[ -z $pid ]] && { printf "Process not found\n"; return }
+	local parent=$(pgrep -o $2)
+	[[ -z $parent ]] && { printf "Process not found\n"; return; }
 	case $1 in
 		p)
-			local ppid=$(awk '/^PPid:/ {print $2}' "/proc/"$pid"/status" 2>/dev/null )
-			(( ppid == 0 )) && {echo "(its ADAM himself)" >&2; return 0 }
+			local ppid=$(awk '/^PPid:/ {print $2}' "/proc/"$parent"/status" 2>/dev/null )
+			(( ppid == 0 )) && {echo "(its ADAM himself)"; return 0; }
 			local name=$(awk '/^Name:/ {print $2}' "/proc/"$ppid"/status" 2>/dev/null)
 			printf "parent:"$name"\nparentId:"$ppid"\n"
 		;;
 
 		mf)
-    		local pids="$pid $(returnAllChildren "$pid")"
+    		local pids="$parent $(returnAllChildren "$parent")"
 
     		[[ -z "$pids" ]] && {
     		    echo "process children lookup error" >&2
@@ -22,13 +22,13 @@ proc() {
     		}
 
     		local totalmem=0
-    		local cpid psize
+    		local pid psize
 
-    		for cpid in ${=pids}; do
-    		    psize=$(awk '/^Pss:/ {print $2}' "/proc/$cpid/smaps_rollup" 2>/dev/null)
+    		for pid in ${=pids}; do
+    		    psize=$(awk '/^Pss:/ {print $2}' "/proc/$pid/smaps_rollup" 2>/dev/null)
 
     		    [[ -z "$psize" ]] && {
-    		        echo "can't read file memory (lack of permission): $cpid" >&2
+    		        echo "can't read file memory (lack of permission): $pid"
     		        continue
     		    }
 
