@@ -1,7 +1,7 @@
 proc() {
     [[ -z $1 ]] || [[ -z $2 ]] && {
 		printf "usgae: proc <flag> <process Name>\nFlags:\np:Parent\nmf:Memory footprint\n"
-        return 1
+        return 0
     }
 	local parent=$(pgrep -o $2)
 	[[ -z $parent ]] && { printf "Process not found\n"; return; }
@@ -10,7 +10,7 @@ proc() {
 			local ppid=$(awk '/^PPid:/ {print $2}' "/proc/"$parent"/status" 2>/dev/null )
 			(( ppid == 0 )) && {echo "(its ADAM himself)"; return 0; }
 			local name=$(awk '/^Name:/ {print $2}' "/proc/"$ppid"/status" 2>/dev/null)
-			printf "parent:"$name"\nparentId:"$ppid"\n"
+			printf "parent:"$name"\nparent Id:"$ppid"\n"
 		;;
 
 		mf)
@@ -55,4 +55,9 @@ returnAllChildren() {
 
     echo "$child"
     returnAllChildren ${=child}
+}
+returnNameOFchildren() {
+	for pid in $(returnAllChildren $(pgrep $1)); do
+		echo $(cat "/proc/$pid/status" | head -n 1)
+	done
 }
